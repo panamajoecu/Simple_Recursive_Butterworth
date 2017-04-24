@@ -11,10 +11,10 @@ class DAQ_filts:
                 #self.filters[chan] = self.kalman_filt(cut_off,samplerate,order)
                 print 'Regressive filters not yet supported!'
                 print 'Reverting to simple filter.'
-                self.filters[chan] = self.recursive_filt(cut_off,samplerate,order)
+                self.filters[chan] = self.mov_avg_filt(samplerate,order)
         else:
             for chan in range(channels):
-                self.filters[chan] = self.recursive_filt(cut_off,samplerate,order)
+                self.filters[chan] = self.mov_avg_filt(samplerate,order)
         
         
         
@@ -62,6 +62,38 @@ class recursive_filt:
         self.y_out_prev = np.r_[y_out,self.y_out_prev[:-1]]
         return y_out
 
+
+class mov_avg_filt:
+
+    def __init__(self,samplerate,order):
+
+        self.y_prev = np.zeros((order,1)).flatten()
+        self.dt_prev = np.ones((order,1)).flatten()/float(samplerate)
+        self.samplerate = samplerate
+        self.dt_min = .95/float(samplerate)  # Less than 1 to account for numerical precision
+
+        pass
+
+
+    def iter(self,y,dt):
+
+        if (dt<self.dt_min):
+            print 'Error!  Timestep less than initialized samplerate!'
+            print 'Defaulting to original timestep.'
+            print ''
+            dt = self.dt_min
+        
+
+        self.y_prev = np.r_[y,self.y_prev[:-1]]
+        self.dt_prev = np.r_[dt,self.dt_prev[:-1]]
+
+
+        num = np.sum(self.y_prev*self.dt_prev)
+        den = np.sum(self.dt_prev)
+        y_out = num/den
+
+        #print y_out
+        return y_out
 
 
 
